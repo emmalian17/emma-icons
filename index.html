@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Emma 工作誌</title>
+<!-- 外殼頁面:讓 iPhone「加入主畫面」用愛心 E 圖示,打開後在裡面載入 Apps Script 網站。
+     這個檔案是公開的,裡面沒有金鑰;金鑰只放在網址 # 後面(不會傳到 GitHub),或存在這支手機上。 -->
+<link rel="icon" href="emma-heart-180.png">
+<link rel="apple-touch-icon" href="emma-heart-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Emma 工作誌">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FBF5EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#211914" media="(prefers-color-scheme: dark)">
+<style>
+  :root { --bg: #FBF5EE; --card: #FFFFFF; --text: #3B2E27; --muted: #8D7A6C; --border: #EAD9C6; --gold: #B5893F; --rose: #E3A3A6; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #211914; --card: #2C2119; --text: #F3E9DF; --muted: #B9A595; --border: #4A3A2E; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg); }
+  .setup { min-height: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+    padding: 24px max(16px, env(safe-area-inset-left)) 24px max(16px, env(safe-area-inset-right)); }
+  .card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; text-align: center; }
+  .card img { width: 84px; height: 84px; }
+  h1 { font-size: 22px; margin: 12px 0 6px; }
+  p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 6px 0; }
+  input { width: 100%; box-sizing: border-box; font-size: 16px; padding: 12px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); margin: 14px 0 10px; }
+  button { width: 100%; font-size: 16px; font-weight: 600; padding: 12px; border: 0; border-radius: 12px; background: var(--gold); color: #fff; }
+  .err { color: #C0504D; min-height: 1.4em; font-size: 14px; }
+  .tip { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 2;
+    background: var(--card); color: var(--text); border: 1px solid var(--rose); border-radius: 16px; padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 15px; line-height: 1.55; }
+  .tip button { margin-top: 10px; padding: 8px; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="setup" id="setup" hidden>
+  <div class="card">
+    <img src="emma-heart-180.png" alt="">
+    <h1>Emma 工作誌</h1>
+    <p>第一次使用:到 Safari 打開妳平常用的工作誌網址,複製整串網址,貼在下面。</p>
+    <input id="url" type="url" placeholder="https://script.google.com/macros/s/…?key=…" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="err" id="err"></div>
+    <button id="go">開啟工作誌</button>
+    <p>網址只存在這支手機上,不會上傳。</p>
+  </div>
+</div>
+<script>
+  var EXEC_URL = "https://script.google.com/macros/s/AKfycbwkzbscjNVhrywEhUbbQikaWidSfalg-CaGAwWFn_hQCnV010YtiAr-dXC_R8Zoc_R2/exec";
+  var STORE = "emma_worklog_key";
+  function isKey(k) { return /^[A-Za-z0-9_-]{16,}$/.test(k || ""); }
+  function keyFromText(text) {
+    var t = String(text || "").trim();
+    var m = t.match(/[?&]key=([^&#\s]+)/);
+    if (m) t = decodeURIComponent(m[1]);
+    return isKey(t) ? t : null;
+  }
+  function saved() { try { return localStorage.getItem(STORE); } catch (e) { return null; } }
+  function save(k) { try { localStorage.setItem(STORE, k); } catch (e) {} }
+  function start(key, justSetUp) {
+    save(key);
+    // 金鑰放在 # 後面:加入主畫面時會跟著網址存下來,但不會送到 GitHub
+    history.replaceState(null, "", location.pathname + "#k=" + encodeURIComponent(key));
+    document.getElementById("setup").hidden = true;
+    var f = document.createElement("iframe");
+    f.src = EXEC_URL + "?key=" + encodeURIComponent(key);
+    f.allow = "clipboard-read; clipboard-write";
+    f.title = "Emma 工作誌";
+    document.body.appendChild(f);
+    var standalone = window.navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+    if (justSetUp && !standalone) {
+      var tip = document.createElement("div");
+      tip.className = "tip";
+      tip.innerHTML = "✅ 設定好了。現在按 Safari 下方的「分享」→「加入主畫面」,主畫面就會是愛心 E 圖示。<button type='button'>知道了</button>";
+      tip.querySelector("button").onclick = function () { tip.remove(); };
+      document.body.appendChild(tip);
+    }
+  }
+  var hashKey = (location.hash.match(/k=([^&]+)/) || [])[1];
+  hashKey = hashKey ? decodeURIComponent(hashKey) : null;
+  var key = isKey(hashKey) ? hashKey : (isKey(saved()) ? saved() : null);
+  if (key) {
+    start(key, false);
+  } else {
+    document.getElementById("setup").hidden = false;
+    document.getElementById("go").onclick = function () {
+      var k = keyFromText(document.getElementById("url").value);
+      if (!k) { document.getElementById("err").textContent = "看不懂這個網址,請貼上完整的工作誌網址(裡面有 key=)。"; return; }
+      start(k, true);
+    };
+  }
+</script>
+</body>
+</html>
